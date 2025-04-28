@@ -1,0 +1,111 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  # Update profile README job
+  update-readme:
+    name: Update Profile README
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Generate README
+        uses: jamesgeorge007/github-activity-readme@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          COMMIT_MSG: 'Updated README with latest activity'
+          MAX_LINES: 5
+  
+  # Flutter project analysis and testing job
+  flutter-test:
+    name: Flutter Analyze and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.0'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Analyze project
+        run: flutter analyze
+        
+      - name: Run tests
+        run: flutter test
+  
+  # Build Android APK
+  build-android:
+    name: Build Android APK
+    needs: flutter-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.0'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Build APK
+        run: flutter build apk --release
+        
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+  
+  # Build iOS IPA (limited functionality on GitHub Actions)
+  build-ios:
+    name: Build iOS (Development)
+    needs: flutter-test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.0'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Build iOS
+        run: flutter build ios --release --no-codesign
+        
+  # Generate snake animation for GitHub contribution graph
+  generate-snake-animation:
+    name: Generate Snake Animation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Generate Snake Animation
+        uses: Platane/snk@master
+        with:
+          github_user_name: rathoreAjitSingh-1887
+          svg_out_path: dist/github-contribution-grid-snake.svg
+          
+      - name: Push to GitHub
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: 'Generate GitHub Snake Animation'
+          add: 'dist/github-contribution-grid-snake.svg'
